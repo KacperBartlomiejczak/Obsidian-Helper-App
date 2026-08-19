@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react'
 import App from './App'
 
 describe('App', () => {
-  it('renders HELLO WORLD', () => {
+  it('renders the Timer with its Start button', () => {
     render(<App />)
 
-    expect(screen.getByText('HELLO WORLD')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument()
   })
 })

@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+
+type TimerMode = 'work' | 'break'
 
 interface TimerProps {
-  initialSeconds?: number
+  initialWorkMinutes?: number
+  initialBreakMinutes?: number
 }
 
 function formatTime(totalSeconds: number): string {
@@ -11,8 +15,22 @@ function formatTime(totalSeconds: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-function Timer({ initialSeconds = 300 }: TimerProps): React.JSX.Element {
-  const [secondsLeft, setSecondsLeft] = useState(initialSeconds)
+function parsePositiveInteger(value: string): number | null {
+  const parsed = Number(value)
+  if (value.trim() === '' || !Number.isInteger(parsed) || parsed <= 0) {
+    return null
+  }
+  return parsed
+}
+
+function Timer({
+  initialWorkMinutes = 25,
+  initialBreakMinutes = 5
+}: TimerProps): React.JSX.Element {
+  const [workMinutes, setWorkMinutes] = useState(initialWorkMinutes)
+  const [breakMinutes, setBreakMinutes] = useState(initialBreakMinutes)
+  const [mode, setMode] = useState<TimerMode>('work')
+  const [secondsLeft, setSecondsLeft] = useState(initialWorkMinutes * 60)
   const [isRunning, setIsRunning] = useState(false)
 
   useEffect(() => {
@@ -20,19 +38,51 @@ function Timer({ initialSeconds = 300 }: TimerProps): React.JSX.Element {
 
     const intervalId = setInterval(() => {
       setSecondsLeft((current) => {
-        if (current <= 1) {
-          setIsRunning(false)
-          return 0
+        if (current > 1) {
+          return current - 1
         }
-        return current - 1
+
+        const finishedMode = mode
+        const nextMode: TimerMode = finishedMode === 'work' ? 'break' : 'work'
+
+        console.log(finishedMode === 'work' ? 'Its time for break' : 'Get back to work')
+
+        setMode(nextMode)
+        setIsRunning(false)
+
+        return nextMode === 'work' ? workMinutes * 60 : breakMinutes * 60
       })
     }, 1000)
 
     return () => clearInterval(intervalId)
-  }, [isRunning])
+  }, [isRunning, mode, workMinutes, breakMinutes])
+
+  const handleWorkMinutesChange = (value: string): void => {
+    const parsed = parsePositiveInteger(value)
+    if (parsed === null) return
+
+    setWorkMinutes(parsed)
+    if (mode === 'work') {
+      setSecondsLeft(parsed * 60)
+    }
+  }
+
+  const handleBreakMinutesChange = (value: string): void => {
+    const parsed = parsePositiveInteger(value)
+    if (parsed === null) return
+
+    setBreakMinutes(parsed)
+    if (mode === 'break') {
+      setSecondsLeft(parsed * 60)
+    }
+  }
 
   return (
     <div className="flex flex-col items-center gap-6">
+      <span className="text-muted-foreground text-sm font-medium uppercase tracking-wide">
+        {mode === 'work' ? 'Work' : 'Break'}
+      </span>
+
       <div className="h-16 overflow-hidden">
         <span
           key={secondsLeft}
@@ -41,9 +91,34 @@ function Timer({ initialSeconds = 300 }: TimerProps): React.JSX.Element {
           {formatTime(secondsLeft)}
         </span>
       </div>
+
       <Button onClick={() => setIsRunning((current) => !current)} disabled={secondsLeft === 0}>
         {isRunning ? 'Stop' : 'Start'}
       </Button>
+
+      <div className="flex gap-4">
+        <label className="flex flex-col gap-1 text-sm">
+          Work (minutes)
+          <Input
+            type="number"
+            min={1}
+            value={workMinutes}
+            disabled={isRunning}
+            onChange={(event) => handleWorkMinutesChange(event.target.value)}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          Break (minutes)
+          <Input
+            type="number"
+            min={1}
+            value={breakMinutes}
+            disabled={isRunning}
+            onChange={(event) => handleBreakMinutesChange(event.target.value)}
+          />
+        </label>
+      </div>
     </div>
   )
 }

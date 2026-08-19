@@ -55,21 +55,39 @@ describe('Timer', () => {
     expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument()
   })
 
-  it('lets you edit the work minutes while stopped and updates the displayed time', () => {
+  it('keeps the duration inputs hidden until Edit is clicked', () => {
     render(<Timer initialWorkMinutes={25} initialBreakMinutes={5} />)
 
+    expect(screen.queryByLabelText('Work (minutes)')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Break (minutes)')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    expect(screen.getByLabelText('Work (minutes)')).toBeInTheDocument()
+    expect(screen.getByLabelText('Break (minutes)')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    expect(screen.queryByLabelText('Work (minutes)')).not.toBeInTheDocument()
+  })
+
+  it('lets you edit the work minutes while in edit mode and updates the displayed time', () => {
+    render(<Timer initialWorkMinutes={25} initialBreakMinutes={5} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.change(screen.getByLabelText('Work (minutes)'), { target: { value: '10' } })
 
     expect(screen.getByText('10:00')).toBeInTheDocument()
   })
 
-  it('disables the duration inputs while the timer is running', () => {
+  it('disables the Edit button and hides the inputs once the timer is running', () => {
     render(<Timer initialWorkMinutes={1} initialBreakMinutes={1} />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
-    expect(screen.getByLabelText('Work (minutes)')).toBeDisabled()
-    expect(screen.getByLabelText('Break (minutes)')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled()
+    expect(screen.queryByLabelText('Work (minutes)')).not.toBeInTheDocument()
   })
 
   it('switches to break, logs "Its time for break" and resets to the break duration when work ends', () => {

@@ -32,6 +32,7 @@ function Timer({
   const [mode, setMode] = useState<TimerMode>('work')
   const [secondsLeft, setSecondsLeft] = useState(initialWorkMinutes * 60)
   const [isRunning, setIsRunning] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     if (!isRunning) return
@@ -77,6 +78,13 @@ function Timer({
     }
   }
 
+  const handleToggleRunning = (): void => {
+    if (!isRunning) {
+      setIsEditing(false)
+    }
+    setIsRunning((current) => !current)
+  }
+
   return (
     <div className="flex flex-col items-center gap-6">
       <span className="text-muted-foreground text-sm font-medium uppercase tracking-wide">
@@ -92,33 +100,44 @@ function Timer({
         </span>
       </div>
 
-      <Button onClick={() => setIsRunning((current) => !current)} disabled={secondsLeft === 0}>
-        {isRunning ? 'Stop' : 'Start'}
-      </Button>
+      <div className="flex gap-3">
+        <Button onClick={handleToggleRunning} disabled={secondsLeft === 0}>
+          {isRunning ? 'Stop' : 'Start'}
+        </Button>
 
-      <div className="flex gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Work (minutes)
-          <Input
-            type="number"
-            min={1}
-            value={workMinutes}
-            disabled={isRunning}
-            onChange={(event) => handleWorkMinutesChange(event.target.value)}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm">
-          Break (minutes)
-          <Input
-            type="number"
-            min={1}
-            value={breakMinutes}
-            disabled={isRunning}
-            onChange={(event) => handleBreakMinutesChange(event.target.value)}
-          />
-        </label>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setIsEditing((current) => !current)}
+          disabled={isRunning}
+        >
+          {isEditing ? 'Done' : 'Edit'}
+        </Button>
       </div>
+
+      {isEditing && (
+        <div className="flex gap-4">
+          <label className="flex flex-col gap-1 text-sm">
+            Work (minutes)
+            <Input
+              type="number"
+              min={1}
+              value={workMinutes}
+              onChange={(event) => handleWorkMinutesChange(event.target.value)}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            Break (minutes)
+            <Input
+              type="number"
+              min={1}
+              value={breakMinutes}
+              onChange={(event) => handleBreakMinutesChange(event.target.value)}
+            />
+          </label>
+        </div>
+      )}
     </div>
   )
 }

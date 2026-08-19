@@ -9,18 +9,12 @@ interface TimerProps {
   initialBreakMinutes?: number
 }
 
+const MIN_DURATION_ERROR = 'Time cannot be smaller than 1'
+
 function formatTime(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-}
-
-function parsePositiveInteger(value: string): number | null {
-  const parsed = Number(value)
-  if (value.trim() === '' || !Number.isInteger(parsed) || parsed <= 0) {
-    return null
-  }
-  return parsed
 }
 
 function Timer({
@@ -29,6 +23,10 @@ function Timer({
 }: TimerProps): React.JSX.Element {
   const [workMinutes, setWorkMinutes] = useState(initialWorkMinutes)
   const [breakMinutes, setBreakMinutes] = useState(initialBreakMinutes)
+  const [workMinutesText, setWorkMinutesText] = useState(String(initialWorkMinutes))
+  const [breakMinutesText, setBreakMinutesText] = useState(String(initialBreakMinutes))
+  const [workMinutesError, setWorkMinutesError] = useState<string | null>(null)
+  const [breakMinutesError, setBreakMinutesError] = useState<string | null>(null)
   const [mode, setMode] = useState<TimerMode>('work')
   const [secondsLeft, setSecondsLeft] = useState(initialWorkMinutes * 60)
   const [isRunning, setIsRunning] = useState(false)
@@ -59,9 +57,22 @@ function Timer({
   }, [isRunning, mode, workMinutes, breakMinutes])
 
   const handleWorkMinutesChange = (value: string): void => {
-    const parsed = parsePositiveInteger(value)
-    if (parsed === null) return
+    setWorkMinutesText(value)
 
+    if (value.trim() === '') {
+      setWorkMinutesError(null)
+      return
+    }
+
+    const parsed = Number(value)
+    if (!Number.isInteger(parsed)) return
+
+    if (parsed < 1) {
+      setWorkMinutesError(MIN_DURATION_ERROR)
+      return
+    }
+
+    setWorkMinutesError(null)
     setWorkMinutes(parsed)
     if (mode === 'work') {
       setSecondsLeft(parsed * 60)
@@ -69,27 +80,56 @@ function Timer({
   }
 
   const handleBreakMinutesChange = (value: string): void => {
-    const parsed = parsePositiveInteger(value)
-    if (parsed === null) return
+    setBreakMinutesText(value)
 
+    if (value.trim() === '') {
+      setBreakMinutesError(null)
+      return
+    }
+
+    const parsed = Number(value)
+    if (!Number.isInteger(parsed)) return
+
+    if (parsed < 1) {
+      setBreakMinutesError(MIN_DURATION_ERROR)
+      return
+    }
+
+    setBreakMinutesError(null)
     setBreakMinutes(parsed)
     if (mode === 'break') {
       setSecondsLeft(parsed * 60)
     }
   }
 
+  const closeEditing = (): void => {
+    setIsEditing(false)
+    setWorkMinutesText(String(workMinutes))
+    setBreakMinutesText(String(breakMinutes))
+    setWorkMinutesError(null)
+    setBreakMinutesError(null)
+  }
+
   const handleToggleRunning = (): void => {
     if (!isRunning) {
-      setIsEditing(false)
+      closeEditing()
     }
     setIsRunning((current) => !current)
   }
+
+  const durationError = workMinutesError ?? breakMinutesError
 
   return (
     <div className="flex flex-col items-center gap-6">
       <span className="text-muted-foreground text-sm font-medium uppercase tracking-wide">
         {mode === 'work' ? 'Work' : 'Break'}
       </span>
+
+      {durationError && (
+        <p className="text-destructive text-sm" role="alert">
+          {durationError}
+        </p>
+      )}
 
       <div className="h-16 overflow-hidden">
         <span
@@ -108,7 +148,7 @@ function Timer({
         <Button
           type="button"
           variant="outline"
-          onClick={() => setIsEditing((current) => !current)}
+          onClick={() => (isEditing ? closeEditing() : setIsEditing(true))}
           disabled={isRunning}
         >
           {isEditing ? 'Done' : 'Edit'}
@@ -121,8 +161,8 @@ function Timer({
             Work (minutes)
             <Input
               type="number"
-              min={1}
-              value={workMinutes}
+              value={workMinutesText}
+              aria-invalid={workMinutesError !== null}
               onChange={(event) => handleWorkMinutesChange(event.target.value)}
             />
           </label>
@@ -131,8 +171,8 @@ function Timer({
             Break (minutes)
             <Input
               type="number"
-              min={1}
-              value={breakMinutes}
+              value={breakMinutesText}
+              aria-invalid={breakMinutesError !== null}
               onChange={(event) => handleBreakMinutesChange(event.target.value)}
             />
           </label>

@@ -80,6 +80,51 @@ describe('Timer', () => {
     expect(screen.getByText('10:00')).toBeInTheDocument()
   })
 
+  it('lets you clear the work minutes field and type a new value', () => {
+    render(<Timer initialWorkMinutes={25} initialBreakMinutes={5} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    const workInput = screen.getByLabelText('Work (minutes)')
+    fireEvent.change(workInput, { target: { value: '' } })
+
+    expect(workInput).toHaveValue(null)
+    expect(screen.getByText('25:00')).toBeInTheDocument()
+
+    fireEvent.change(workInput, { target: { value: '15' } })
+
+    expect(workInput).toHaveValue(15)
+    expect(screen.getByText('15:00')).toBeInTheDocument()
+  })
+
+  it('shows a validation message and keeps the last valid duration when 0 is entered', () => {
+    render(<Timer initialWorkMinutes={25} initialBreakMinutes={5} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByLabelText('Work (minutes)'), { target: { value: '0' } })
+
+    expect(screen.getByText('Time cannot be smaller than 1')).toBeInTheDocument()
+    expect(screen.getByText('25:00')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Work (minutes)'), { target: { value: '12' } })
+
+    expect(screen.queryByText('Time cannot be smaller than 1')).not.toBeInTheDocument()
+    expect(screen.getByText('12:00')).toBeInTheDocument()
+  })
+
+  it('reverts an unfinished edit to the last valid value when Done is clicked', () => {
+    render(<Timer initialWorkMinutes={25} initialBreakMinutes={5} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByLabelText('Work (minutes)'), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+
+    expect(screen.getByLabelText('Work (minutes)')).toHaveValue(25)
+    expect(screen.queryByText('Time cannot be smaller than 1')).not.toBeInTheDocument()
+  })
+
   it('disables the Edit button and hides the inputs once the timer is running', () => {
     render(<Timer initialWorkMinutes={1} initialBreakMinutes={1} />)
 
